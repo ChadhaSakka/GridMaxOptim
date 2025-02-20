@@ -13,9 +13,15 @@
  * Usage: ./exe <nb repetitions> <nb points X> <nb points Y>
  */
 
+/* Author: Emmanuel OSERET, University of Versailles Saint-Quentin-en-Yvelines, France
+ * Optimized version: Removed unnecessary malloc calls using flat arrays, with SIMD vectorization.
+ * Usage: ./exe <nb repetitions> <nb points X> <nb points Y>
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <immintrin.h> // For AVX2/SIMD intrinsics (optional, remove if not needed)
+#include <stdint.h>
+#include <immintrin.h> // For AVX2/SIMD intrinsics
 
 // Abstract values
 typedef struct {
@@ -151,42 +157,93 @@ void load_positions(value_grid_t src, pos_val_grid_t *dst) {
     }
 }
 
-// Linear max-finding for v1 (corrected for flat array)
+// Linear max-finding for v1 (corrected for flat array) with AVX2 intrinsics
 pos_val_t *find_max_v1(const pos_val_grid_t *pv_grid) {
     printf("Compute max v1...\n");
     if (pv_grid->nx == 0 || pv_grid->ny == 0) {
         return NULL;
     }
-    // Initialize max_pv as a pointer to the first element of the flat array
-    pos_val_t *max_pv = &pv_grid->entries[0];
+
     unsigned total = pv_grid->nx * pv_grid->ny;
-    for (unsigned i = 1; i < total; i++) {
-        // Use . instead of -> since entries[i] is now a pos_val_t, not a pointer
-        if (pv_grid->entries[i].v1 > max_pv->v1) {
-            max_pv = &pv_grid->entries[i];
+    unsigned max_idx = 0;
+    __m256 max_v1_vec = _mm256_set1_ps(pv_grid->entries[0].v1);
+
+    // Ensure alignment for _mm256_load_ps (32-byte alignment for AVX2)
+    if (((uintptr_t)&pv_grid->entries[0].v1) % 32 != 0) {
+        fprintf(stderr, "Warning: Data not aligned for AVX2\n");
+    }
+
+    // Vectorized loop (8 floats per iteration with AVX2)
+    for (unsigned i = 0; i < total; i += 8) {
+        if (i + 7 < total) { // Ensure we don’t exceed bounds
+            __m256 v1_vec = _mm256_load_ps(&pv_grid->entries[i].v1);
+            max_v1_vec = _mm256_max_ps(max_v1_vec, v1_vec);
         }
     }
-    return max_pv;
+
+    // Reduce vector results to scalar
+    float max_v1 = max_v1_vec[0];
+    for (int lane = 1; lane < 8; lane++) {
+        float val = max_v1_vec[lane];
+        if (val > max_v1) {
+            max_v1 = val;
+            // Note: We’ll find the exact index in the next step
+        }
+    }
+
+    // Find the exact index by scanning the grid
+    for (unsigned i = 0; i < total; i++) {
+        if (pv_grid->entries[i].v1 > max_v1) {
+            max_v1 = pv_grid->entries[i].v1;
+            max_idx = i;
+        }
+    }
+
+    return &pv_grid->entries[max_idx];
 }
 
-// Linear max-finding for v2 (corrected for flat array)
 pos_val_t *find_max_v2(const pos_val_grid_t *pv_grid) {
     printf("Compute max v2...\n");
     if (pv_grid->nx == 0 || pv_grid->ny == 0) {
         return NULL;
     }
-    // Initialize max_pv as a pointer to the first element of the flat array
-    pos_val_t *max_pv = &pv_grid->entries[0];
+
     unsigned total = pv_grid->nx * pv_grid->ny;
-    for (unsigned i = 1; i < total; i++) {
-        // Use . instead of -> since entries[i] is now a pos_val_t, not a pointer
-        if (pv_grid->entries[i].v2 > max_pv->v2) {
-            max_pv = &pv_grid->entries[i];
+    unsigned max_idx = 0;
+    __m256 max_v2_vec = _mm256_set1_ps(pv_grid->entries[0].v2);
+
+    // Ensure alignment for _mm256_load_ps
+    if (((uintptr_t)&pv_grid->entries[0].v2) % 32 != 0) {
+        fprintf(stderr, "Warning: Data not aligned for AVX2\n");
+    }
+
+    // Vectorized loop (8 floats per iteration with AVX2)
+    for (unsigned i = 0; i < total; i += 8) {
+        if (i + 7 < total) {
+            __m256 v2_vec = _mm256_load_ps(&pv_grid->entries[i].v2);
+            max_v2_vec = _mm256_max_ps(max_v2_vec, v2_vec);
         }
     }
-    return max_pv;
-}
 
+    // Reduce vector results to scalar
+    float max_v2 = max_v2_vec[0];
+    for (int lane = 1; lane < 8; lane++) {
+        float val = max_v2_vec[lane];
+        if (val > max_v2) {
+            max_v2 = val;
+        }
+    }
+
+    // Find the exact index by scanning the grid
+    for (unsigned i = 0; i < total; i++) {
+        if (pv_grid->entries[i].v2 > max_v2) {
+            max_v2 = pv_grid->entries[i].v2;
+            max_idx = i;
+        }
+    }
+
+    return &pv_grid->entries[max_idx];
+}
 // Free memory for flat arrays (single free per grid)
 void free_pos_val_grid(pos_val_grid_t pv_grid) {
     printf("Free memory for positions+values (%u x %u entries)...\n", pv_grid.nx, pv_grid.ny);
