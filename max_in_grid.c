@@ -57,8 +57,8 @@ int generate_random_values (const char *file_name, unsigned nx, unsigned ny)
    unsigned i, j;
    for (i=0; i<nx; i++) {
       for (j=0; j<ny; j++) {
-         const float v1 = (float) rand() / RAND_MAX;
-         const float v2 = (float) rand() / RAND_MAX;
+         const float v1 = rand() / (float) RAND_MAX;
+         const float v2 = rand() / (float) RAND_MAX;
 
          if (fprintf (fp, "%lf %lf\n", v1, v2) <= 0)
             return -2;
@@ -86,7 +86,7 @@ int load_values (const char *file_name, value_grid_t *val_grid)
    char buf [100];
 
    // Load grid size from input file (first line)
-   unsigned nx, ny;
+   unsigned nx = 0, ny = 0;
    if (fgets (buf, sizeof buf, fp) != NULL &&
        sscanf (buf, "%u %u", &nx, &ny) != 2) {
       fprintf (stderr, "Failed to parse the first line from the input file\n");
@@ -193,7 +193,7 @@ int cmp_pv_entries_v2 (const void *a, const void *b)
    return 0;
 }
 
-// Computes maximum v1+v2 (and save related points) from a row of pairs
+// Computes maximum v1+v2 (and save related points) from a row of pairs      // c'est ici que ça doit chauffer :')
 pos_val_t *find_max_v1 (const pos_val_grid_t *pv_grid)
 {
    printf ("Compute maximum v1...\n");
@@ -204,7 +204,7 @@ pos_val_t *find_max_v1 (const pos_val_grid_t *pv_grid)
    return pv_grid->entries [pv_grid->nx * pv_grid->ny - 1];
 }
 
-// Computes maximum v1+v2 (and save related points) from a row of pairs
+// Computes maximum v1+v2 (and save related points) from a row of pairs      // Là aussi :D
 pos_val_t *find_max_v2 (const pos_val_grid_t *pv_grid)
 {
    printf ("Compute maximum v2...\n");
