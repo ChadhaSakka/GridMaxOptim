@@ -38,7 +38,7 @@ typedef struct {
 
 size_t sum_bytes = 0;       // Cumulated sum of allocated bytes
 
-// Buffered pseudo-random value generation
+// Optimisation : Buffered pseudo-random value generation
 int generate_random_values(const char *file_name, unsigned nx, unsigned ny) {
     printf("Generate %u x %u values and dump them to %s...\n", nx, ny, file_name);
 
@@ -57,8 +57,8 @@ int generate_random_values(const char *file_name, unsigned nx, unsigned ny) {
 
     for (unsigned i = 0; i < nx; i++) {
         for (unsigned j = 0; j < ny; j++) {
-            float v1 = (float)rand() / RAND_MAX;
-            float v2 = (float)rand() / RAND_MAX;
+            float v1 = rand() / (float) RAND_MAX;
+            float v2 = rand() / (float) RAND_MAX;
             buf_pos += sprintf(buffer + buf_pos, "%f %f\n", v1, v2);
             if (buf_pos > sizeof(buffer) - 100) {
                 fwrite(buffer, 1, buf_pos, fp);
@@ -168,26 +168,38 @@ void load_positions (value_grid_t src, pos_val_grid_t *dst)
    }
 }
 
-// Computes maximum v1+v2 (and save related points) from a row of pairs      // c'est ici que ça doit chauffer :')
+
+// Optim 2 : Linear max-finding 
 pos_val_t *find_max_v1 (const pos_val_grid_t *pv_grid)
 {
-   printf ("Compute maximum v1...\n");
-
-   qsort (pv_grid->entries, pv_grid->nx * pv_grid->ny,
-          sizeof (pv_grid->entries[0]), cmp_pv_entries_v1);
-
-   return pv_grid->entries [pv_grid->nx * pv_grid->ny - 1];
+   printf ("Compute max v1...\n");
+   if (pv_grid->nx == 0 || pv_grid->ny == 0) {
+      return NULL;
+   }
+   pos_val_t *max_pv = pv_grid->entries[0];
+   unsigned total = pv_grid->nx * pv_grid->ny;
+   for (unsigned i = 1; i < total; i++) {
+      if (pv_grid->entries[i]->v1 > max_pv->v1) {
+         max_pv = pv_grid->entries[i];
+      }
+   }
+   return max_pv;
 }
 
-// Computes maximum v1+v2 (and save related points) from a row of pairs      // Là aussi :D
 pos_val_t *find_max_v2 (const pos_val_grid_t *pv_grid)
 {
-   printf ("Compute maximum v2...\n");
-
-   qsort (pv_grid->entries, pv_grid->nx * pv_grid->ny,
-          sizeof (pv_grid->entries[0]), cmp_pv_entries_v2);
-
-   return pv_grid->entries [pv_grid->nx * pv_grid->ny - 1];
+   printf ("Compute max v2...\n");
+   if (pv_grid->nx == 0 || pv_grid->ny == 0) {
+      return NULL;
+   }
+   pos_val_t *max_pv = pv_grid->entries[0];
+   unsigned total = pv_grid->nx * pv_grid->ny;
+   for (unsigned i = 1; i < total; i++) {
+      if (pv_grid->entries[i]->v2 > max_pv->v2) {
+         max_pv = pv_grid->entries[i];
+      }
+   }
+   return max_pv;
 }
 
 // Frees memory that was allocated to save distances
