@@ -168,34 +168,6 @@ void load_positions (value_grid_t src, pos_val_grid_t *dst)
    }
 }
 
-// Compares two pos_val entries (to be used with qsort)
-int cmp_pv_entries_v1 (const void *a, const void *b)
-{
-   const pos_val_t *pva = *((const pos_val_t **) a);
-   const pos_val_t *pvb = *((const pos_val_t **) b);
-
-   const float a_v1 = pva->v1;
-   const float b_v1 = pvb->v1;
-
-   if (a_v1 < b_v1) return -1;
-   if (a_v1 > b_v1) return 1;
-   return 0;
-}
-
-// Compares two pos_val entries (to be used with qsort)
-int cmp_pv_entries_v2 (const void *a, const void *b)
-{
-   const pos_val_t *pva = *((const pos_val_t **) a);
-   const pos_val_t *pvb = *((const pos_val_t **) b);
-
-   const float a_v2 = pva->v2;
-   const float b_v2 = pvb->v2;
-
-   if (a_v2 < b_v2) return -1;
-   if (a_v2 > b_v2) return 1;
-   return 0;
-}
-
 // Computes maximum v1+v2 (and save related points) from a row of pairs      // c'est ici que ça doit chauffer :')
 pos_val_t *find_max_v1 (const pos_val_grid_t *pv_grid)
 {
