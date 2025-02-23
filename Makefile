@@ -2,7 +2,7 @@
 EXEC = max_grid
 
 # Fichier source
-SRC = max_in_grid_opt.c
+SRC = max_in_grid.c
 
 # Compilateurs disponibles
 CC_GCC = gcc
@@ -11,7 +11,7 @@ CC_CLANG = clang
 # Options de compilation
 CFLAGS = -O2 -g -march=native -funroll-loops -ffast-math -Wall -fno-omit-frame-pointer -grecord-gcc-switches -mavx2
 # Paramètres par défaut pour l'exécution
-REPS = 3
+REPS = 10
 SIZE_X = 2000
 SIZE_Y = 3000
 
