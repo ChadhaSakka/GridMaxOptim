@@ -141,36 +141,29 @@ void load_positions(value_grid_t src, pos_val_grid_t *dst) {
     }
 }
 
-// Linear max-finding for v1
-pos_val_t *find_max_v1(const pos_val_grid_t *pv_grid) {
-    printf("Compute max v1...\n");
+// Linear max-finding for v1 and v2, fused (Optimization 3: linear search and fusion)
+void find_max_v1_v2(const pos_val_grid_t *pv_grid, pos_val_t **max_v1, pos_val_t **max_v2) {
+    printf("Compute max v1 and v2...\n");
     if (pv_grid->nx == 0 || pv_grid->ny == 0) {
-        return NULL;
+        *max_v1 = NULL;
+        *max_v2 = NULL;
+        return;
     }
-    pos_val_t *max_pv = &pv_grid->entries[0];  // Fixed: Take address of first entry
-    unsigned total = pv_grid->nx * pv_grid->ny;
-    for (unsigned i = 1; i < total; i++) {
-        if (pv_grid->entries[i].v1 > max_pv->v1) {
-            max_pv = &pv_grid->entries[i];
-        }
-    }
-    return max_pv;
-}
 
-// Linear max-finding for v2
-pos_val_t *find_max_v2(const pos_val_grid_t *pv_grid) {
-    printf("Compute max v2...\n");
-    if (pv_grid->nx == 0 || pv_grid->ny == 0) {
-        return NULL;
-    }
-    pos_val_t *max_pv = &pv_grid->entries[0];  // Fixed: Take address of first entry
     unsigned total = pv_grid->nx * pv_grid->ny;
+    *max_v1 = &pv_grid->entries[0];
+    *max_v2 = &pv_grid->entries[0];
+
     for (unsigned i = 1; i < total; i++) {
-        if (pv_grid->entries[i].v2 > max_pv->v2) {
-            max_pv = &pv_grid->entries[i];
+        // Search max v1
+        if (pv_grid->entries[i].v1 > (*max_v1)->v1) {
+            *max_v1 = &pv_grid->entries[i];
+        }
+        // Search max v2
+        if (pv_grid->entries[i].v2 > (*max_v2)->v2) {
+            *max_v2 = &pv_grid->entries[i];
         }
     }
-    return max_pv;
 }
 
 // Free memory for flat arrays (single free per grid)
