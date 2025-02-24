@@ -179,6 +179,7 @@ void free_value_grid(value_grid_t val_grid) {
     sum_bytes -= val_grid.nx * val_grid.ny * sizeof(value_t);
 }
 
+
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "Usage: %s <nb repetitions> <nb points X> <nb points Y>\n", argv[0]);
@@ -190,30 +191,26 @@ int main(int argc, char *argv[]) {
     unsigned ny = (unsigned)atoi(argv[3]);
 
     const char *input_file_name = "values.txt";
+    value_grid_t value_grid = {0};
+    pos_val_grid_t pos_val_grid = {0};
+
+    // Generate and load once, then reuse (Optimization 6)
     if (generate_random_values(input_file_name, nx, ny) != 0) {
         fprintf(stderr, "Failed to generate values\n");
         return EXIT_FAILURE;
     }
+    if (load_values(input_file_name, &value_grid) != 0) {
+        fprintf(stderr, "Failed to load values\n");
+        return EXIT_FAILURE;
+    }
+    load_positions(value_grid, &pos_val_grid);
 
     for (unsigned r = 0; r < nrep; r++) {
-        value_grid_t value_grid = {0};
-        pos_val_grid_t pos_val_grid = {0};
+	pos_val_t *max_v1, *max_v2;
+        find_max_v1_v2(&pos_val_grid, &max_v1, &max_v2);
 
-        if (load_values(input_file_name, &value_grid) != 0) {
-            fprintf(stderr, "Failed to load values\n");
-            return EXIT_FAILURE;
-        }
-
-        load_positions(value_grid, &pos_val_grid);
-
-        const pos_val_t *pos_v1_max = find_max_v1(&pos_val_grid);
-        const pos_val_t *pos_v2_max = find_max_v2(&pos_val_grid);
-
-        printf("Max v1: x=%u, y=%u, v1=%f\n", pos_v1_max->x, pos_v1_max->y, pos_v1_max->v1);
-        printf("Max v2: x=%u, y=%u, v2=%f\n", pos_v2_max->x, pos_v2_max->y, pos_v2_max->v2);
-
-        free_pos_val_grid(pos_val_grid);
-        free_value_grid(value_grid);
+        printf("Max v1: x=%u, y=%u, v1=%f\n", max_v1->x, max_v1->y, max_v1->v1);
+        printf("Max v2: x=%u, y=%u, v2=%f\n", max_v2->x, max_v2->y, max_v2->v2);
     }
 
     remove(input_file_name);
