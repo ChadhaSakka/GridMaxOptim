@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <immintrin.h> // For AVX2/SIMD intrinsics (optional, remove if not needed)
 
-// Abstract values
+// Abstract values (aligned for AVX2)
 typedef struct {
     float v1, v2;
-} value_t;
+} __attribute__((aligned(32))) value_t;
 
 // Dynamic array of values (flat)
 typedef struct {
