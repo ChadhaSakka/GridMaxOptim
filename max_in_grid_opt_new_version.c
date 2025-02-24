@@ -18,11 +18,11 @@ typedef struct {
     value_t *entries; // Flat array (no pointers to pointers)
 } value_grid_t;
 
-// Structure to relate values and position
+// Structure to relate values and position (aligned for AVX2)
 typedef struct {
     unsigned x, y; // position in the 2D grid
     float v1, v2;
-} pos_val_t;
+} __attribute__((aligned(32))) pos_val_t;
 
 // Dynamic array of pos_val_t entries (flat)
 typedef struct {
